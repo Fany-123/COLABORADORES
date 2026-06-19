@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="es">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Lonchera Saludable - Preescolar NEM</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Outfit', sans-serif; }
+    .food-item { cursor: grab; user-select: none; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    .food-item:hover { transform: translateY(-4px); }
+    .food-item:active { cursor: grabbing; transform: scale(1.1); }
+    .lunchbox-zone { min-height: 240px; transition: all 0.3s ease; }
+    .lunchbox-zone.drag-over { background: rgba(74, 222, 128, 0.2); border-color: #22c55e; transform: scale(1.02); }
+    .bounce { animation: bounce 0.5s cubic-bezier(0.25, 0.8, 0.25, 1); }
+    @keyframes bounce { 
+      0%, 100% { transform: scale(1); } 
+      50% { transform: scale(1.2) rotate(3deg); } 
+    }
+    .pulse-glow { animation: pulseGlow 2s infinite; }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+      50% { box-shadow: 0 0 15px 5px rgba(34, 197, 94, 0.2); }
+    }
+  </style>
+ </head>
+ <body class="min-h-screen bg-gradient-to-br from-green-50 via-emerald-100 to-teal-50 flex items-center justify-center p-4 relative overflow-x-hidden">
+  
+  <!-- Voice Toggle Button (Always visible floating in the top right corner) -->
+  <button id="voice-toggle" onclick="toggleVoice()" class="fixed top-4 right-4 bg-white/80 backdrop-blur-md shadow-lg border border-green-200 p-3 rounded-full hover:bg-green-50 transition-all flex items-center gap-2 z-50">
+    <span id="voice-icon" class="text-xl">🔊</span>
+    <span id="voice-status-text" class="text-xs font-bold text-green-700 hidden sm:inline">Voz: Activada</span>
+  </button>
+
+  <!-- Title Screen -->
+  <div id="name-screen" class="bg-white/90 backdrop-blur-md border border-white/50 shadow-2xl rounded-3xl p-8 max-w-md w-full text-center relative overflow-hidden transition-all duration-500">
+    <div class="absolute -top-10 -left-10 w-32 h-32 bg-green-200/50 rounded-full blur-2xl"></div>
+    <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-amber-200/50 rounded-full blur-2xl"></div>
+    
+    <div class="text-7xl mb-4 animate-bounce">🍱</div>
+    <h1 class="text-3xl font-extrabold text-green-800 mb-2 leading-tight">Mi Lonchera Saludable</h1>
+    <p class="text-gray-600 font-medium mb-6">Alineado con la NEM Fase 2 (Preescolar)</p>
+    
+    <div class="bg-green-50 border border-green-200 rounded-2xl p-4 text-left text-sm text-green-800 mb-6">
+      <p class="font-bold mb-1">🎯 Propósito Pedagógico (PDA):</p>
+      <p class="text-xs">Distinguir alimentos saludables de aquellos que ponen en riesgo la salud y diseñar loncheras nutritivas reconociendo el beneficio del agua simple potable.</p>
+    </div>
+
+    <form id="name-form" class="flex flex-col gap-4">
+      <label for="name-input" class="text-left font-bold text-gray-700 text-sm">¿Cómo te llamas?</label>
+      <input id="name-input" type="text" required class="border-2 border-green-200 rounded-2xl px-4 py-3 text-lg focus:outline-none focus:border-green-500 transition-colors placeholder:text-gray-300" placeholder="Escribe tu nombre aquí...">
+      <button type="submit" class="bg-green-500 hover:bg-green-600 active:scale-95 text-white py-4 rounded-2xl text-lg font-bold shadow-lg shadow-green-500/30 transition-all">
+        ¡Comenzar a Jugar! 🚀
+      </button>
+    </form>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="game-screen" class="hidden w-full max-w-4xl bg-white/80 backdrop-blur-md border border-white/50 shadow-2xl rounded-3xl p-6 relative">
+    
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-green-100 pb-4 mb-6">
+      <div class="mb-3 sm:mb-0">
+        <h2 id="greeting" class="text-2xl font-extrabold text-green-800"></h2>
+        <p class="text-gray-600 text-xs sm:text-sm">Arrastra alimentos a la lonchera para crear una comida nutritiva y saludable.</p>
+      </div>
+      <!-- Progress indicators for food groups -->
+      <div class="flex flex-wrap gap-2 text-xs font-bold text-gray-700">
+        <span id-indicator="frutas" class="px-2.5 py-1.5 rounded-full bg-gray-100 border border-gray-200 flex items-center gap-1">🍏 Frutas/Verduras: <span id="ind-fv">0/1</span></span>
+        <span id-indicator="cereales" class="px-2.5 py-1.5 rounded-full bg-gray-100 border border-gray-200 flex items-center gap-1">🍞 Cereales: <span id="ind-cer">0/1</span></span>
+        <span id-indicator="proteinas" class="px-2.5 py-1.5 rounded-full bg-gray-100 border border-gray-200 flex items-center gap-1">🍗 Proteínas/Lácteos: <span id="ind-prot">0/1</span></span>
+        <span id-indicator="agua" class="px-2.5 py-1.5 rounded-full bg-gray-100 border border-gray-200 flex items-center gap-1">💧 Agua Simple: <span id="ind-agua">0/1</span></span>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Left side: Food Selection -->
+      <div class="lg:col-span-7 flex flex-col">
+        <!-- Categories Filter -->
+        <div class="flex flex-wrap gap-1.5 mb-4 bg-green-50/50 p-1.5 rounded-2xl border border-green-100/50">
+          <button onclick="filterFoods('all')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-green-500 text-white shadow-sm" data-category="all">Todos</button>
+          <button onclick="filterFoods('frutas')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800" data-category="frutas">🍏 Frutas y Verduras</button>
+          <button onclick="filterFoods('cereales')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800" data-category="cereales">🍞 Cereales</button>
+          <button onclick="filterFoods('proteinas')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800" data-category="proteinas">🍗 Proteínas</button>
+          <button onclick="filterFoods('agua')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800" data-category="agua">💧 Agua</button>
+          <button onclick="filterFoods('chatarra')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800" data-category="chatarra">🍩 Evitar/Ocasional</button>
+        </div>
+
+        <!-- Food Grid -->
+        <div id="food-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-3 bg-slate-50/50 p-4 rounded-2xl border border-slate-100 max-h-[360px] overflow-y-auto"></div>
+      </div>
+
+      <!-- Right side: Lunchbox and Score -->
+      <div class="lg:col-span-5 flex flex-col justify-between gap-6">
+        <!-- The Lunchbox Box -->
+        <div class="flex flex-col">
+          <h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1">🎒 Tu Lonchera <span>(Arrastra aquí o toca la comida)</span></h3>
+          <div id="lunchbox" class="lunchbox-zone border-4 border-dashed border-amber-300 rounded-3xl p-4 flex flex-wrap gap-4 items-center justify-center bg-amber-50/50 relative overflow-hidden">
+            <!-- Background Lunchbox compartment graphics -->
+            <div class="absolute inset-0 opacity-10 flex pointer-events-none">
+              <div class="w-1/2 h-full border-r-2 border-amber-400"></div>
+              <div class="w-1/2 h-full flex flex-col">
+                <div class="h-1/2 border-b-2 border-amber-400"></div>
+              </div>
+            </div>
+            <p id="empty-hint" class="text-amber-700/60 font-bold text-center w-full pointer-events-none text-sm z-10">
+              ¡Lonchera vacía!<br><span class="text-xs font-medium text-amber-600/80">Elige alimentos nutritivos y agua pura</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Feedback & Action Panel -->
+        <div id="feedback-panel" class="bg-green-50/80 border border-green-100 rounded-3xl p-5 flex flex-col gap-3">
+          <div class="flex items-center gap-3">
+            <span id="feedback-emoji" class="text-3xl animate-bounce">💡</span>
+            <div>
+              <h4 id="feedback-title" class="font-extrabold text-sm text-green-950">¡Hola!</h4>
+              <p id="feedback-desc" class="text-xs text-green-900">Agrega por lo menos un alimento de cada grupo saludable para que tu lonchera sea balanceada.</p>
+            </div>
+          </div>
+          
+          <div class="flex gap-2 mt-2">
+            <button onclick="resetLunchbox()" class="flex-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 py-2.5 rounded-2xl text-xs font-bold active:scale-95 transition-all">
+              🗑️ Vaciar Lonchera
+            </button>
+            <button id="btn-done" onclick="finishLunchbox()" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-green-500/20 active:scale-95 transition-all opacity-50 cursor-not-allowed" disabled>
+              ✅ ¡Listo! 🍱
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Audio Context generator for effects
+    let audioCtx = null;
+    function playSound(type) {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'add') {
+          // A happy bubbly pop sound
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'remove') {
+          // A descending whoosh
+          osc.frequency.setValueAtTime(500, now);
+          osc.frequency.exponentialRampToValueAtTime(150, now + 0.2);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        } else if (type === 'success') {
+          // A cheerful tada chime
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+          osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+          osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        } else if (type === 'warning') {
+          // Warning low sound
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.setValueAtTime(120, now + 0.15);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        }
+      } catch (e) {
+        console.log("Audio API not supported or blocked: ", e);
+      }
+    }
+
+    // Speech Configuration
+    let voiceEnabled = true;
+    function speak(text) {
+      if (!voiceEnabled) return;
+      // Cancel previous speak queue to avoid talking over
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-MX';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.1; // Slightly higher pitch for child-friendly feel
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function toggleVoice() {
+      voiceEnabled = !voiceEnabled;
+      const icon = document.getElementById('voice-icon');
+      const text = document.getElementById('voice-status-text');
+      if (voiceEnabled) {
+        icon.textContent = '🔊';
+        text.textContent = 'Voz: Activada';
+        speak("Voz activada");
+      } else {
+        icon.textContent = '🔇';
+        text.textContent = 'Voz: Desactivada';
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    // Foods database according to NEM Phase 2 / Plato del Bien Comer
+    const foods = [
+      // Frutas y Verduras
+      { emoji: '🍎', name: 'Manzana', cat: 'frutas', isHealthy: true, desc: 'Fruta dulce que te llena de energía y vitaminas.' },
+      { emoji: '🍌', name: 'Plátano', cat: 'frutas', isHealthy: true, desc: 'Fruta rica en potasio que ayuda a tus músculos.' },
+      { emoji: '🥕', name: 'Zanahoria', cat: 'frutas', isHealthy: true, desc: 'Verdura crujiente ideal para la vista.' },
+      { emoji: '🥦', name: 'Brócoli', cat: 'frutas', isHealthy: true, desc: 'Verdura que parece arbolito, llena de calcio y hierro.' },
+      { emoji: '🥑', name: 'Aguacate', cat: 'frutas', isHealthy: true, desc: 'Aporta grasas buenas para tu cerebro.' },
+      { emoji: '🍓', name: 'Fresa', cat: 'frutas', isHealthy: true, desc: 'Fruta ácida y rica en vitamina C.' },
+      
+      // Cereales
+      { emoji: '🍞', name: 'Pan integral', cat: 'cereales', isHealthy: true, desc: 'Te da fibra para una buena digestión.' },
+      { emoji: '🌽', name: 'Elote', cat: 'cereales', isHealthy: true, desc: 'Cereal nativo que aporta energía saludable.' },
+      { emoji: '🥣', name: 'Avena', cat: 'cereales', isHealthy: true, desc: 'Cereal que cuida de tu corazoncito.' },
+
+      // Proteínas y Lácteos (Origen animal y leguminosas)
+      { emoji: '🥚', name: 'Huevo cocido', cat: 'proteinas', isHealthy: true, desc: 'Tiene proteínas completas para crecer fuerte.' },
+      { emoji: '🧀', name: 'Queso', cat: 'proteinas', isHealthy: true, desc: 'Aporta calcio para tus huesos.' },
+      { emoji: '🥛', name: 'Leche', cat: 'proteinas', isHealthy: true, desc: 'Fortalece tus dientes y huesos.' },
+      { emoji: '🍗', name: 'Pollo', cat: 'proteinas', isHealthy: true, desc: 'Carne magra ideal para formar tus músculos.' },
+      { emoji: '🥜', name: 'Nueces', cat: 'proteinas', isHealthy: true, desc: 'Semillas con grasas saludables y fibra.' },
+
+      // Agua
+      { emoji: '💧', name: 'Agua simple', cat: 'agua', isHealthy: true, desc: 'El agua simple potable es vital para hidratarte.' },
+
+      // Chatarra / Alto en azúcares o grasas (Riesgo en exceso)
+      { emoji: '🍩', name: 'Dona', cat: 'chatarra', isHealthy: false, desc: 'Tiene mucha azúcar y harina refinada. Cuidado.' },
+      { emoji: '🥤', name: 'Refresco', cat: 'chatarra', isHealthy: false, desc: 'Tiene demasiada azúcar y colorantes dañinos.' },
+      { emoji: '🍟', name: 'Papas fritas', cat: 'chatarra', isHealthy: false, desc: 'Tienen exceso de sal y grasas no saludables.' },
+      { emoji: '🍬', name: 'Dulces', cat: 'chatarra', isHealthy: false, desc: 'Pueden provocar caries y no nutren tu cuerpo.' }
+    ];
+
+    let playerName = '';
+    let lunchboxItems = [];
+
+    // Enter Game Screen
+    document.getElementById('name-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      playerName = document.getElementById('name-input').value.trim();
+      if (!playerName) return;
+
+      document.getElementById('name-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.remove('hidden');
+      
+      const greetingMsg = `¡Lonchera de ${playerName}! 🎒`;
+      document.getElementById('greeting').textContent = greetingMsg;
+
+      buildFoodGrid();
+      updateIndicators();
+
+      // Audio greeting
+      setTimeout(() => {
+        speak(`¡Hola ${playerName}! Vamos a preparar una lonchera saludable. Agrega agua simple y un alimento de cada color para lograr el balance. ¡Evita la comida chatarra!`);
+      }, 500);
+    });
+
+    // Render Grid
+    let currentFilter = 'all';
+    function buildFoodGrid() {
+      const grid = document.getElementById('food-grid');
+      grid.innerHTML = '';
+      
+      foods.forEach((food, i) => {
+        if (currentFilter !== 'all' && food.cat !== currentFilter) return;
+
+        const el = document.createElement('button');
+        el.type = 'button';
+        // Base category color border
+        let borderCol = 'border-slate-100';
+        if (food.cat === 'frutas') borderCol = 'hover:border-green-400';
+        else if (food.cat === 'cereales') borderCol = 'hover:border-amber-400';
+        else if (food.cat === 'proteinas') borderCol = 'hover:border-blue-400';
+        else if (food.cat === 'agua') borderCol = 'hover:border-cyan-400';
+        else if (food.cat === 'chatarra') borderCol = 'hover:border-red-400';
+
+        el.className = `food-item text-4xl p-3 rounded-2xl bg-white shadow-md hover:shadow-lg border-2 ${borderCol} flex flex-col items-center justify-between min-h-[96px]`;
+        el.draggable = true;
+        el.innerHTML = `<span class="transform transition-transform active:scale-125">${food.emoji}</span>
+                        <span class="text-[10px] font-bold text-gray-500 mt-1 uppercase text-center w-full truncate">${food.name}</span>`;
+        
+        // Add events
+        el.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', i);
+          speak(food.name);
+        });
+        el.addEventListener('click', () => {
+          addToLunchbox(i);
+        });
+        
+        grid.appendChild(el);
+      });
+    }
+
+    // Filter Logic
+    function filterFoods(cat) {
+      currentFilter = cat;
+      buildFoodGrid();
+      
+      // Update Active Button UI
+      const buttons = document.querySelectorAll('.cat-btn');
+      buttons.forEach(btn => {
+        if (btn.getAttribute('data-category') === cat) {
+          btn.className = "cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-green-500 text-white shadow-sm";
+        } else {
+          btn.className = "cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800";
+        }
+      });
+
+      // Sound effect
+      playSound('add');
+    }
+
+    // Drag-Drop Zone
+    const lunchbox = document.getElementById('lunchbox');
+    lunchbox.addEventListener('dragover', e => { 
+      e.preventDefault(); 
+      lunchbox.classList.add('drag-over'); 
+    });
+    lunchbox.addEventListener('dragleave', () => { 
+      lunchbox.classList.remove('drag-over'); 
+    });
+    lunchbox.addEventListener('drop', e => {
+      e.preventDefault();
+      lunchbox.classList.remove('drag-over');
+      const idx = parseInt(e.dataTransfer.getData('text/plain'));
+      if (!isNaN(idx)) {
+        addToLunchbox(idx);
+      }
+    });
+
+    // Add Item to Lunchbox
+    function addToLunchbox(idx) {
+      if (lunchboxItems.includes(idx)) {
+        speak(`Ya agregaste ${foods[idx].name}`);
+        return;
+      }
+
+      const food = foods[idx];
+      lunchboxItems.push(idx);
+
+      // Hide Empty Indicator
+      document.getElementById('empty-hint').style.display = 'none';
+
+      // Create Element in Lunchbox
+      const item = document.createElement('div');
+      item.className = 'flex flex-col items-center bg-white/90 p-2 rounded-2xl shadow-md border border-amber-200 bounce cursor-pointer relative group';
+      item.innerHTML = `<span class="text-4xl">${food.emoji}</span>
+                        <span class="text-[8px] font-bold text-gray-500 uppercase mt-0.5">${food.name}</span>
+                        <span class="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full text-[9px] w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">✕</span>`;
+      
+      // Remove Action
+      item.addEventListener('click', () => {
+        playSound('remove');
+        item.remove();
+        lunchboxItems = lunchboxItems.filter(i => i !== idx);
+        
+        speak(`Quitaste ${food.name}`);
+        
+        if (!lunchboxItems.length) {
+          document.getElementById('empty-hint').style.display = '';
+        }
+        updateIndicators();
+        assessLunchbox();
+      });
+
+      lunchbox.appendChild(item);
+
+      // Play sound and speak description
+      if (food.isHealthy) {
+        playSound('add');
+        speak(`${food.name}. ${food.desc}`);
+      } else {
+        playSound('warning');
+        speak(`${food.name}. ${food.desc}`);
+      }
+
+      updateIndicators();
+      assessLunchbox();
+    }
+
+    // Assess Balance & Update Indicators
+    function updateIndicators() {
+      const activeItems = lunchboxItems.map(i => foods[i]);
+      
+      const counts = {
+        frutas: activeItems.filter(f => f.cat === 'frutas').length,
+        cereales: activeItems.filter(f => f.cat === 'cereales').length,
+        proteinas: activeItems.filter(f => f.cat === 'proteinas').length,
+        agua: activeItems.filter(f => f.cat === 'agua').length
+      };
+
+      // Update counters text
+      document.getElementById('ind-fv').textContent = `${counts.frutas > 0 ? '✓' : '0/1'}`;
+      document.getElementById('ind-cer').textContent = `${counts.cereales > 0 ? '✓' : '0/1'}`;
+      document.getElementById('ind-prot').textContent = `${counts.proteinas > 0 ? '✓' : '0/1'}`;
+      document.getElementById('ind-agua').textContent = `${counts.agua > 0 ? '✓' : '0/1'}`;
+
+      // Update color indicators
+      updateIndicatorStyle('frutas', counts.frutas > 0);
+      updateIndicatorStyle('cereales', counts.cereales > 0);
+      updateIndicatorStyle('proteinas', counts.proteinas > 0);
+      updateIndicatorStyle('agua', counts.agua > 0);
+    }
+
+    function updateIndicatorStyle(cat, isMet) {
+      const el = document.querySelector(`[id-indicator="${cat}"]`);
+      if (!el) return;
+      if (isMet) {
+        el.className = "px-2.5 py-1.5 rounded-full bg-green-100 text-green-700 border border-green-300 flex items-center gap-1";
+      } else {
+        el.className = "px-2.5 py-1.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 flex items-center gap-1";
+      }
+    }
+
+    // Provide educational feedback
+    function assessLunchbox() {
+      const activeItems = lunchboxItems.map(i => foods[i]);
+      const panel = document.getElementById('feedback-panel');
+      const emoji = document.getElementById('feedback-emoji');
+      const title = document.getElementById('feedback-title');
+      const desc = document.getElementById('feedback-desc');
+      const doneBtn = document.getElementById('btn-done');
+
+      const counts = {
+        frutas: activeItems.filter(f => f.cat === 'frutas').length,
+        cereales: activeItems.filter(f => f.cat === 'cereales').length,
+        proteinas: activeItems.filter(f => f.cat === 'proteinas').length,
+        agua: activeItems.filter(f => f.cat === 'agua').length,
+        chatarra: activeItems.filter(f => f.cat === 'chatarra').length
+      };
+
+      const hasHealthyCore = counts.frutas > 0 && counts.cereales > 0 && counts.proteinas > 0;
+      const hasWater = counts.agua > 0;
+      const hasJunk = counts.chatarra > 0;
+
+      // Reset styles first
+      panel.className = "bg-green-50/80 border border-green-100 rounded-3xl p-5 flex flex-col gap-3";
+      doneBtn.disabled = true;
+      doneBtn.className = "flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-green-500/20 active:scale-95 transition-all opacity-50 cursor-not-allowed";
+
+      if (lunchboxItems.length === 0) {
+        emoji.textContent = '💡';
+        title.textContent = '¡Hola!';
+        desc.textContent = 'Agrega por lo menos un alimento de cada grupo saludable para que tu lonchera sea balanceada.';
+      } else if (hasJunk) {
+        emoji.textContent = '⚠️';
+        title.textContent = 'Cuidado con la comida chatarra';
+        desc.textContent = 'Pusiste alimentos con mucha azúcar o grasa. Esos no nos nutren. ¡Quítalos haciendo clic sobre ellos y agrega más frutas!';
+        panel.className = "bg-rose-50 border border-rose-200 rounded-3xl p-5 flex flex-col gap-3";
+      } else if (hasHealthyCore && hasWater) {
+        // Perfect healthy lunchbox!
+        emoji.textContent = '🌟';
+        title.textContent = '¡Lonchera Súper Nutritiva!';
+        desc.textContent = '¡Excelente trabajo! Tienes frutas/verduras, cereales, proteínas y agua simple potable. ¡Todo está balanceado!';
+        panel.className = "bg-green-100 border border-green-300 rounded-3xl p-5 flex flex-col gap-3 pulse-glow";
+        
+        doneBtn.disabled = false;
+        doneBtn.className = "flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-green-500/20 active:scale-95 transition-all";
+      } else {
+        // Missing some healthy items
+        emoji.textContent = '🥗';
+        title.textContent = '¡Buen camino!';
+        
+        let missing = [];
+        if (counts.frutas === 0) missing.push('Fruta o Verdura 🍏');
+        if (counts.cereales === 0) missing.push('Cereal (ej. Elote) 🍞');
+        if (counts.proteinas === 0) missing.push('Proteína (ej. Huevo o Queso) 🥚');
+        if (!hasWater) missing.push('Agua Simple Potable 💧');
+
+        desc.textContent = `Aún te falta agregar: ${missing.join(', ')}.`;
+        panel.className = "bg-amber-50 border border-amber-200 rounded-3xl p-5 flex flex-col gap-3";
+      }
+    }
+
+    // Complete / Celebration
+    function finishLunchbox() {
+      playSound('success');
+      const successMsg = `¡Felicidades ${playerName}! Creaste una lonchera balanceada, muy rica y súper saludable. ¡Buen provecho!`;
+      speak(successMsg);
+      
+      const emoji = document.getElementById('feedback-emoji');
+      const title = document.getElementById('feedback-title');
+      const desc = document.getElementById('feedback-desc');
+
+      emoji.textContent = '🎉';
+      title.textContent = '¡Misión Cumplida!';
+      desc.textContent = 'Tu lonchera está perfecta. ¡Compártela con tus amigos para aprender juntos de alimentación saludable!';
+
+      // CSS Trigger celebration scale
+      const lunchboxDiv = document.getElementById('lunchbox');
+      lunchboxDiv.classList.add('bounce');
+      setTimeout(() => lunchboxDiv.classList.remove('bounce'), 600);
+    }
+
+    // Reset
+    function resetLunchbox() {
+      playSound('remove');
+      lunchboxItems = [];
+      lunchbox.querySelectorAll('div').forEach(el => el.remove());
+      document.getElementById('empty-hint').style.display = '';
+      
+      updateIndicators();
+      assessLunchbox();
+      
+      speak("Vaciamos la lonchera. ¡Empecemos otra vez!");
+    }
+  </script>
+ </body>
+</html>
