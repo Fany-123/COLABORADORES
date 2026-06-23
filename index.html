@@ -63,14 +63,10 @@
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-green-100 pb-4 mb-6">
       <div class="mb-3 sm:mb-0">
         <h2 id="greeting" class="text-2xl font-extrabold text-green-800"></h2>
-        <p class="text-gray-600 text-xs sm:text-sm">Arrastra alimentos a la lonchera para crear una comida nutritiva y saludable.</p>
+        <p id="level-instruction" class="text-emerald-700 font-bold text-xs sm:text-sm mt-1"></p>
       </div>
       <!-- Progress indicators for food groups -->
-      <div class="flex flex-wrap gap-2 text-xs font-bold text-gray-700">
-        <span id-indicator="frutas" class="px-2.5 py-1.5 rounded-full bg-gray-100 border border-gray-200 flex items-center gap-1">🍏 Frutas/Verduras: <span id="ind-fv">0/1</span></span>
-        <span id-indicator="cereales" class="px-2.5 py-1.5 rounded-full bg-gray-100 border border-gray-200 flex items-center gap-1">🍞 Cereales: <span id="ind-cer">0/1</span></span>
-        <span id-indicator="proteinas" class="px-2.5 py-1.5 rounded-full bg-gray-100 border border-gray-200 flex items-center gap-1">🍗 Proteínas/Lácteos: <span id="ind-prot">0/1</span></span>
-        <span id-indicator="agua" class="px-2.5 py-1.5 rounded-full bg-gray-100 border border-gray-200 flex items-center gap-1">💧 Agua Simple: <span id="ind-agua">0/1</span></span>
+      <div id="recipe-progress-container" class="flex flex-wrap gap-2 text-xs font-bold text-gray-700">
       </div>
     </header>
 
@@ -96,7 +92,7 @@
       <div class="lg:col-span-5 flex flex-col justify-between gap-6">
         <!-- The Lunchbox Box -->
         <div class="flex flex-col">
-          <h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1">🎒 Tu Lonchera <span>(Arrastra aquí o toca la comida)</span></h3>
+          <h3 id="lunchbox-title" class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1">🎒 Tu Lonchera <span>(Arrastra aquí o toca la comida)</span></h3>
           <div id="lunchbox" class="lunchbox-zone border-4 border-dashed border-amber-300 rounded-3xl p-4 flex flex-wrap gap-4 items-center justify-center bg-amber-50/50 relative overflow-hidden">
             <!-- Background Lunchbox compartment graphics -->
             <div class="absolute inset-0 opacity-10 flex pointer-events-none">
@@ -258,6 +254,53 @@
       { emoji: '🍬', name: 'Dulces', cat: 'chatarra', isHealthy: false, desc: 'Pueden provocar caries y no nutren tu cuerpo.' }
     ];
 
+    const levels = [
+      {
+        name: "Nivel 1: El Almuerzo de Oso 🐻",
+        instruction: "Receta: Agrega 2 Manzanas 🍎, 1 Pan integral 🍞 y 1 Agua simple 💧.",
+        speechInstruction: "Nivel uno: El Almuerzo de Oso. Agrega dos manzanas, un pan integral y un agua simple a tu lonchera.",
+        recipe: {
+          "Manzana": 2,
+          "Pan integral": 1,
+          "Agua simple": 1
+        }
+      },
+      {
+        name: "Nivel 2: Picnic de Monitos 🐵",
+        instruction: "Receta: Agrega 3 Plátanos 🍌, 2 Huevos cocidos 🥚 y 1 Agua simple 💧.",
+        speechInstruction: "Nivel dos: Picnic de Monitos. Agrega tres plátanos, dos huevos cocidos y un agua simple a tu lonchera.",
+        recipe: {
+          "Plátano": 3,
+          "Huevo cocido": 2,
+          "Agua simple": 1
+        }
+      },
+      {
+        name: "Nivel 3: El Gran Festín Saludable 🥕",
+        instruction: "Receta: Agrega 2 Zanahorias 🥕, 2 Quesos 🧀, 3 Fresas 🍓 y 1 Agua simple 💧.",
+        speechInstruction: "Nivel tres: El Gran Festín Saludable. Agrega dos zanahorias, dos quesos, tres fresas y un agua simple.",
+        recipe: {
+          "Zanahoria": 2,
+          "Queso": 2,
+          "Fresa": 3,
+          "Agua simple": 1
+        }
+      },
+      {
+        name: "Nivel 4: ¡Limpiemos la Comida Chatarra! 🗑️",
+        instruction: "Receta: Coloca lo malo en el bote de basura para tirarlo: 1 Dona 🍩, 1 Refresco 🥤, 1 Papas fritas 🍟 y 1 Dulces 🍬.",
+        speechInstruction: "Nivel cuatro: Limpiemos la Comida Chatarra. Encuentra los alimentos chatarra y ponlos en el bote de basura para tirarlos. Pon una dona, un refresco, unas papas fritas y unos dulces.",
+        isTrashLevel: true,
+        recipe: {
+          "Dona": 1,
+          "Refresco": 1,
+          "Papas fritas": 1,
+          "Dulces": 1
+        }
+      }
+    ];
+
+    let currentLevelIndex = 0;
     let playerName = '';
     let lunchboxItems = [];
 
@@ -270,17 +313,45 @@
       document.getElementById('name-screen').classList.add('hidden');
       document.getElementById('game-screen').classList.remove('hidden');
       
+      buildFoodGrid();
+      startLevel(0);
+    });
+
+    function startLevel(index) {
+      currentLevelIndex = index;
+      lunchboxItems = [];
+      
+      // Clear lunchbox DOM elements
+      const lunchbox = document.getElementById('lunchbox');
+      lunchbox.querySelectorAll('div').forEach(el => el.remove());
+      document.getElementById('empty-hint').style.display = '';
+
+      const level = levels[currentLevelIndex];
       const greetingMsg = `¡Lonchera de ${playerName}! 🎒`;
       document.getElementById('greeting').textContent = greetingMsg;
+      document.getElementById('level-instruction').textContent = `${level.name} - ${level.instruction}`;
 
-      buildFoodGrid();
+      // Trash level visual styling override
+      const containerLabel = document.getElementById('lunchbox-title');
+      const emptyHint = document.getElementById('empty-hint');
+      const lunchboxDiv = document.getElementById('lunchbox');
+      if (level.isTrashLevel) {
+        containerLabel.innerHTML = `🗑️ Bote de Basura <span>(Arrastra aquí la comida chatarra)</span>`;
+        emptyHint.innerHTML = `¡Basurero vacío!<br><span class="text-xs font-medium text-amber-600/80">Agrega alimentos chatarra aquí para desecharlos</span>`;
+        lunchboxDiv.className = 'lunchbox-zone border-4 border-dashed border-rose-300 rounded-3xl p-4 flex flex-wrap gap-4 items-center justify-center bg-rose-50/50 relative overflow-hidden';
+      } else {
+        containerLabel.innerHTML = `🎒 Tu Lonchera <span>(Arrastra aquí o toca la comida)</span>`;
+        emptyHint.innerHTML = `¡Lonchera vacía!<br><span class="text-xs font-medium text-amber-600/80">Elige alimentos nutritivos y agua pura</span>`;
+        lunchboxDiv.className = 'lunchbox-zone border-4 border-dashed border-amber-300 rounded-3xl p-4 flex flex-wrap gap-4 items-center justify-center bg-amber-50/50 relative overflow-hidden';
+      }
+
       updateIndicators();
+      assessLunchbox();
 
-      // Audio greeting
       setTimeout(() => {
-        speak(`¡Hola ${playerName}! Vamos a preparar una lonchera saludable. Agrega agua simple y un alimento de cada color para lograr el balance. ¡Evita la comida chatarra!`);
+        speak(level.speechInstruction);
       }, 500);
-    });
+    }
 
     // Render Grid
     let currentFilter = 'all';
@@ -356,31 +427,62 @@
       }
     });
 
-    // Add Item to Lunchbox
+     // Add Item to Lunchbox
     function addToLunchbox(idx) {
-      if (lunchboxItems.includes(idx)) {
-        speak(`Ya agregaste ${foods[idx].name}`);
+      const food = foods[idx];
+      const level = levels[currentLevelIndex];
+
+      // Warn but allow chatarra for feedback (only on healthy food levels)
+      if (!food.isHealthy && !level.isTrashLevel) {
+        playSound('warning');
+        speak(`${food.name}. ${food.desc}`);
+      }
+
+      // Check count and recipe
+      const targetCount = level.recipe[food.name] || 0;
+      const currentCount = lunchboxItems.filter(item => item.name === food.name).length;
+
+      if (targetCount === 0) {
+        if (level.isTrashLevel) {
+          speak(`¡No tires eso! La comida saludable no se tira a la basura.`);
+        } else {
+          speak(`Este nivel no necesita ${food.name}. ¡Sigue la receta del nivel!`);
+        }
+        playSound('warning');
         return;
       }
 
-      const food = foods[idx];
-      lunchboxItems.push(idx);
+      if (currentCount >= targetCount) {
+        speak(`Ya juntaste suficientes ${food.name}s.`);
+        playSound('warning');
+        return;
+      }
+
+      const itemObj = {
+        id: Math.random().toString(36).substr(2, 9),
+        foodIndex: idx,
+        name: food.name,
+        emoji: food.emoji
+      };
+      
+      lunchboxItems.push(itemObj);
 
       // Hide Empty Indicator
       document.getElementById('empty-hint').style.display = 'none';
 
       // Create Element in Lunchbox
-      const item = document.createElement('div');
-      item.className = 'flex flex-col items-center bg-white/90 p-2 rounded-2xl shadow-md border border-amber-200 bounce cursor-pointer relative group';
-      item.innerHTML = `<span class="text-4xl">${food.emoji}</span>
+      const itemEl = document.createElement('div');
+      itemEl.id = `item-${itemObj.id}`;
+      itemEl.className = 'flex flex-col items-center bg-white/90 p-2 rounded-2xl shadow-md border border-amber-200 bounce cursor-pointer relative group';
+      itemEl.innerHTML = `<span class="text-4xl">${food.emoji}</span>
                         <span class="text-[8px] font-bold text-gray-500 uppercase mt-0.5">${food.name}</span>
                         <span class="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full text-[9px] w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">✕</span>`;
       
       // Remove Action
-      item.addEventListener('click', () => {
+      itemEl.addEventListener('click', () => {
         playSound('remove');
-        item.remove();
-        lunchboxItems = lunchboxItems.filter(i => i !== idx);
+        itemEl.remove();
+        lunchboxItems = lunchboxItems.filter(item => item.id !== itemObj.id);
         
         speak(`Quitaste ${food.name}`);
         
@@ -391,77 +493,70 @@
         assessLunchbox();
       });
 
-      lunchbox.appendChild(item);
+      lunchbox.appendChild(itemEl);
 
-      // Play sound and speak description
-      if (food.isHealthy) {
-        playSound('add');
-        speak(`${food.name}. ${food.desc}`);
+      // Play sound and speak count status
+      playSound('add');
+      const newCount = currentCount + 1;
+      if (level.isTrashLevel) {
+        speak(`Tiraste ${food.name} a la basura. Llevas ${newCount} de ${targetCount}.`);
       } else {
-        playSound('warning');
-        speak(`${food.name}. ${food.desc}`);
+        speak(`Agregaste ${food.name}. Tienes ${newCount} de ${targetCount}.`);
       }
 
       updateIndicators();
       assessLunchbox();
     }
 
-    // Assess Balance & Update Indicators
+    // Update Recipe Indicators
     function updateIndicators() {
-      const activeItems = lunchboxItems.map(i => foods[i]);
+      const container = document.getElementById('recipe-progress-container');
+      container.innerHTML = '';
+
+      const level = levels[currentLevelIndex];
       
-      const counts = {
-        frutas: activeItems.filter(f => f.cat === 'frutas').length,
-        cereales: activeItems.filter(f => f.cat === 'cereales').length,
-        proteinas: activeItems.filter(f => f.cat === 'proteinas').length,
-        agua: activeItems.filter(f => f.cat === 'agua').length
-      };
-
-      // Update counters text
-      document.getElementById('ind-fv').textContent = `${counts.frutas > 0 ? '✓' : '0/1'}`;
-      document.getElementById('ind-cer').textContent = `${counts.cereales > 0 ? '✓' : '0/1'}`;
-      document.getElementById('ind-prot').textContent = `${counts.proteinas > 0 ? '✓' : '0/1'}`;
-      document.getElementById('ind-agua').textContent = `${counts.agua > 0 ? '✓' : '0/1'}`;
-
-      // Update color indicators
-      updateIndicatorStyle('frutas', counts.frutas > 0);
-      updateIndicatorStyle('cereales', counts.cereales > 0);
-      updateIndicatorStyle('proteinas', counts.proteinas > 0);
-      updateIndicatorStyle('agua', counts.agua > 0);
-    }
-
-    function updateIndicatorStyle(cat, isMet) {
-      const el = document.querySelector(`[id-indicator="${cat}"]`);
-      if (!el) return;
-      if (isMet) {
-        el.className = "px-2.5 py-1.5 rounded-full bg-green-100 text-green-700 border border-green-300 flex items-center gap-1";
-      } else {
-        el.className = "px-2.5 py-1.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 flex items-center gap-1";
-      }
+      Object.entries(level.recipe).forEach(([foodName, targetCount]) => {
+        const food = foods.find(f => f.name === foodName);
+        const emoji = food ? food.emoji : '';
+        const currentCount = lunchboxItems.filter(item => item.name === foodName).length;
+        const isMet = currentCount >= targetCount;
+        
+        const span = document.createElement('span');
+        if (isMet) {
+          span.className = "px-2.5 py-1.5 rounded-full bg-green-100 text-green-700 border border-green-300 flex items-center gap-1";
+          span.innerHTML = `${emoji} ${foodName}: ✓ (${currentCount}/${targetCount})`;
+        } else {
+          span.className = "px-2.5 py-1.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 flex items-center gap-1";
+          span.innerHTML = `${emoji} ${foodName}: ${currentCount}/${targetCount}`;
+        }
+        container.appendChild(span);
+      });
     }
 
     // Provide educational feedback
     function assessLunchbox() {
-      const activeItems = lunchboxItems.map(i => foods[i]);
       const panel = document.getElementById('feedback-panel');
       const emoji = document.getElementById('feedback-emoji');
       const title = document.getElementById('feedback-title');
       const desc = document.getElementById('feedback-desc');
       const doneBtn = document.getElementById('btn-done');
 
-      const counts = {
-        frutas: activeItems.filter(f => f.cat === 'frutas').length,
-        cereales: activeItems.filter(f => f.cat === 'cereales').length,
-        proteinas: activeItems.filter(f => f.cat === 'proteinas').length,
-        agua: activeItems.filter(f => f.cat === 'agua').length,
-        chatarra: activeItems.filter(f => f.cat === 'chatarra').length
-      };
+      const level = levels[currentLevelIndex];
 
-      const hasHealthyCore = counts.frutas > 0 && counts.cereales > 0 && counts.proteinas > 0;
-      const hasWater = counts.agua > 0;
-      const hasJunk = counts.chatarra > 0;
+      // Check if they put any non-recipe items
+      const nonRecipeItems = lunchboxItems.filter(item => !level.recipe[item.name]);
+      const hasIncorrectItems = nonRecipeItems.length > 0;
 
-      // Reset styles first
+      // Check if all recipe counts are matched
+      let allRequirementsMet = true;
+      Object.entries(level.recipe).forEach(([foodName, targetCount]) => {
+        const currentCount = lunchboxItems.filter(item => item.name === foodName).length;
+        if (currentCount !== targetCount) {
+          allRequirementsMet = false;
+        }
+      });
+
+      // Reset styles
       panel.className = "bg-green-50/80 border border-green-100 rounded-3xl p-5 flex flex-col gap-3";
       doneBtn.disabled = true;
       doneBtn.className = "flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-green-500/20 active:scale-95 transition-all opacity-50 cursor-not-allowed";
@@ -469,61 +564,97 @@
       if (lunchboxItems.length === 0) {
         emoji.textContent = '💡';
         title.textContent = '¡Hola!';
-        desc.textContent = 'Agrega por lo menos un alimento de cada grupo saludable para que tu lonchera sea balanceada.';
-      } else if (hasJunk) {
-        emoji.textContent = '⚠️';
-        title.textContent = 'Cuidado con la comida chatarra';
-        desc.textContent = 'Pusiste alimentos con mucha azúcar o grasa. Esos no nos nutren. ¡Quítalos haciendo clic sobre ellos y agrega más frutas!';
-        panel.className = "bg-rose-50 border border-rose-200 rounded-3xl p-5 flex flex-col gap-3";
-      } else if (hasHealthyCore && hasWater) {
-        // Perfect healthy lunchbox!
+        desc.textContent = level.isTrashLevel ? `Busquemos los alimentos que nos hacen daño y tíralos a la basura.` : `Vamos a seguir la receta. ${level.instruction}`;
+      } else if (hasIncorrectItems) {
+        if (level.isTrashLevel) {
+          emoji.textContent = '⚠️';
+          title.textContent = '¡Comida saludable en la basura!';
+          desc.textContent = 'Pusiste un alimento saludable en el bote de basura. ¡Sácalo tocándolo para no desperdiciarlo!';
+        } else {
+          emoji.textContent = '🧐';
+          title.textContent = 'Ingredientes adicionales';
+          desc.textContent = 'Pusiste alimentos que no están en la receta del nivel. ¡Quítalos haciendo clic sobre ellos!';
+        }
+        panel.className = "bg-amber-50 border border-amber-200 rounded-3xl p-5 flex flex-col gap-3";
+      } else if (allRequirementsMet) {
         emoji.textContent = '🌟';
-        title.textContent = '¡Lonchera Súper Nutritiva!';
-        desc.textContent = '¡Excelente trabajo! Tienes frutas/verduras, cereales, proteínas y agua simple potable. ¡Todo está balanceado!';
+        title.textContent = level.isTrashLevel ? '¡Basurero Limpio!' : '¡Receta Lista!';
+        desc.textContent = level.isTrashLevel ? '¡Excelente! Limpiaste toda la comida chatarra correctamente. ¡Toca el botón verde!' : '¡Excelente! Completaste exactamente la receta. ¡Toca el botón verde para continuar!';
         panel.className = "bg-green-100 border border-green-300 rounded-3xl p-5 flex flex-col gap-3 pulse-glow";
         
         doneBtn.disabled = false;
         doneBtn.className = "flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-green-500/20 active:scale-95 transition-all";
       } else {
-        // Missing some healthy items
         emoji.textContent = '🥗';
         title.textContent = '¡Buen camino!';
         
         let missing = [];
-        if (counts.frutas === 0) missing.push('Fruta o Verdura 🍏');
-        if (counts.cereales === 0) missing.push('Cereal (ej. Elote) 🍞');
-        if (counts.proteinas === 0) missing.push('Proteína (ej. Huevo o Queso) 🥚');
-        if (!hasWater) missing.push('Agua Simple Potable 💧');
+        Object.entries(level.recipe).forEach(([foodName, targetCount]) => {
+          const currentCount = lunchboxItems.filter(item => item.name === foodName).length;
+          if (currentCount < targetCount) {
+            const diff = targetCount - currentCount;
+            missing.push(`${diff} ${foodName}${diff > 1 ? 's' : ''}`);
+          }
+        });
 
-        desc.textContent = `Aún te falta agregar: ${missing.join(', ')}.`;
+        desc.textContent = level.isTrashLevel ? `Aún te falta desechar: ${missing.join(', ')}.` : `Aún te falta agregar: ${missing.join(', ')}.`;
         panel.className = "bg-amber-50 border border-amber-200 rounded-3xl p-5 flex flex-col gap-3";
       }
     }
 
-    // Complete / Celebration
+    // Complete Level / Win screen transitions
     function finishLunchbox() {
       playSound('success');
-      const successMsg = `¡Felicidades ${playerName}! Creaste una lonchera balanceada, muy rica y súper saludable. ¡Buen provecho!`;
-      speak(successMsg);
       
-      const emoji = document.getElementById('feedback-emoji');
-      const title = document.getElementById('feedback-title');
-      const desc = document.getElementById('feedback-desc');
-
-      emoji.textContent = '🎉';
-      title.textContent = '¡Misión Cumplida!';
-      desc.textContent = 'Tu lonchera está perfecta. ¡Compártela con tus amigos para aprender juntos de alimentación saludable!';
+      const level = levels[currentLevelIndex];
+      const victoryScreen = document.getElementById('victory-screen');
+      const victoryTitle = document.getElementById('victory-title');
+      const victoryDesc = document.getElementById('victory-desc');
+      const victoryBtn = document.getElementById('victory-action-btn');
+      const victoryEmoji = document.getElementById('victory-emoji');
 
       // CSS Trigger celebration scale
       const lunchboxDiv = document.getElementById('lunchbox');
       lunchboxDiv.classList.add('bounce');
       setTimeout(() => lunchboxDiv.classList.remove('bounce'), 600);
+
+      victoryScreen.classList.remove('hidden');
+
+      if (currentLevelIndex < levels.length - 1) {
+        victoryEmoji.textContent = '🎉';
+        victoryTitle.textContent = '¡Nivel Completado!';
+        victoryDesc.textContent = `¡Grandioso ${playerName}! Lograste completar la receta de "${level.name}". ¿Listo para el siguiente reto?`;
+        victoryBtn.textContent = 'Siguiente Nivel 🚀';
+        
+        speak(`¡Excelente ${playerName}! Completaste el nivel. ¡Vamos al siguiente!`);
+      } else {
+        victoryEmoji.textContent = '🏆';
+        victoryTitle.textContent = '¡Campeón de Nutrición!';
+        victoryDesc.textContent = `¡Muchas felicidades ${playerName}! Completaste los 3 niveles y aprendiste a diseñar loncheras saludables y balanceadas usando conteo. ¡Buen provecho!`;
+        victoryBtn.textContent = 'Volver a Jugar 🔄';
+        
+        speak(`¡Felicidades ${playerName}! Completaste todos los niveles. ¡Eres un experto en loncheras saludables!`);
+      }
+    }
+
+    // Action when button in victory modal is clicked
+    function nextLevelAction() {
+      const victoryScreen = document.getElementById('victory-screen');
+      victoryScreen.classList.add('hidden');
+
+      if (currentLevelIndex < levels.length - 1) {
+        startLevel(currentLevelIndex + 1);
+      } else {
+        // Restart from Level 1
+        startLevel(0);
+      }
     }
 
     // Reset
     function resetLunchbox() {
       playSound('remove');
       lunchboxItems = [];
+      const lunchbox = document.getElementById('lunchbox');
       lunchbox.querySelectorAll('div').forEach(el => el.remove());
       document.getElementById('empty-hint').style.display = '';
       
@@ -533,5 +664,20 @@
       speak("Vaciamos la lonchera. ¡Empecemos otra vez!");
     }
   </script>
+
+  <!-- Level Success / Victory Screen -->
+  <div id="victory-screen" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white/95 border border-white/50 shadow-2xl rounded-3xl p-8 max-w-md w-full text-center relative overflow-hidden transition-all duration-500 scale-95">
+      <div class="absolute -top-10 -left-10 w-32 h-32 bg-green-200/50 rounded-full blur-2xl"></div>
+      <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-amber-200/50 rounded-full blur-2xl"></div>
+      
+      <div class="text-7xl mb-4 animate-bounce" id="victory-emoji">🎉</div>
+      <h3 id="victory-title" class="text-3xl font-extrabold text-green-800 mb-2 leading-tight">¡Buen trabajo!</h3>
+      <p id="victory-desc" class="text-gray-600 font-medium mb-6"></p>
+      <button id="victory-action-btn" onclick="nextLevelAction()" class="w-full bg-green-500 hover:bg-green-600 active:scale-95 text-white py-4 rounded-2xl text-lg font-bold shadow-lg shadow-green-500/30 transition-all">
+        Siguiente Nivel 🚀
+      </button>
+    </div>
+  </div>
  </body>
 </html>
