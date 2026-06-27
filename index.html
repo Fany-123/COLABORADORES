@@ -1,683 +1,950 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
- <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mi Lonchera Saludable - Preescolar NEM</title>
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Outfit', sans-serif; }
-    .food-item { cursor: grab; user-select: none; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-    .food-item:hover { transform: translateY(-4px); }
-    .food-item:active { cursor: grabbing; transform: scale(1.1); }
-    .lunchbox-zone { min-height: 240px; transition: all 0.3s ease; }
-    .lunchbox-zone.drag-over { background: rgba(74, 222, 128, 0.2); border-color: #22c55e; transform: scale(1.02); }
-    .bounce { animation: bounce 0.5s cubic-bezier(0.25, 0.8, 0.25, 1); }
-    @keyframes bounce { 
-      0%, 100% { transform: scale(1); } 
-      50% { transform: scale(1.2) rotate(3deg); } 
-    }
-    .pulse-glow { animation: pulseGlow 2s infinite; }
-    @keyframes pulseGlow {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
-      50% { box-shadow: 0 0 15px 5px rgba(34, 197, 94, 0.2); }
-    }
-  </style>
- </head>
- <body class="min-h-screen bg-gradient-to-br from-green-50 via-emerald-100 to-teal-50 flex items-center justify-center p-4 relative overflow-x-hidden">
-  
-  <!-- Voice Toggle Button (Always visible floating in the top right corner) -->
-  <button id="voice-toggle" onclick="toggleVoice()" class="fixed top-4 right-4 bg-white/80 backdrop-blur-md shadow-lg border border-green-200 p-3 rounded-full hover:bg-green-50 transition-all flex items-center gap-2 z-50">
-    <span id="voice-icon" class="text-xl">🔊</span>
-    <span id="voice-status-text" class="text-xs font-bold text-green-700 hidden sm:inline">Voz: Activada</span>
-  </button>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Canastas Numéricas - Relaciona Número y Cantidad</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-sky: #e0f2fe; /* Light sky blue */
+            --grass: #4ade80; /* Bright green grass */
+            --grass-dark: #22c55e;
+            --primary: #f59e0b; /* Amber */
+            --basket-brown: #d97706;
+            --basket-dark: #b45309;
+            --apple-red: #ef4444;
+            --text-color: #1e293b;
+        }
 
-  <!-- Title Screen -->
-  <div id="name-screen" class="bg-white/90 backdrop-blur-md border border-white/50 shadow-2xl rounded-3xl p-8 max-w-md w-full text-center relative overflow-hidden transition-all duration-500">
-    <div class="absolute -top-10 -left-10 w-32 h-32 bg-green-200/50 rounded-full blur-2xl"></div>
-    <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-amber-200/50 rounded-full blur-2xl"></div>
-    
-    <div class="text-7xl mb-4 animate-bounce">🍱</div>
-    <h1 class="text-3xl font-extrabold text-green-800 mb-2 leading-tight">Mi Lonchera Saludable</h1>
-    <p class="text-gray-600 font-medium mb-6">Alineado con la NEM Fase 2 (Preescolar)</p>
-    
-    <div class="bg-green-50 border border-green-200 rounded-2xl p-4 text-left text-sm text-green-800 mb-6">
-      <p class="font-bold mb-1">🎯 Propósito Pedagógico (PDA):</p>
-      <p class="text-xs">Distinguir alimentos saludables de aquellos que ponen en riesgo la salud y diseñar loncheras nutritivas reconociendo el beneficio del agua simple potable.</p>
-    </div>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
 
-    <form id="name-form" class="flex flex-col gap-4">
-      <label for="name-input" class="text-left font-bold text-gray-700 text-sm">¿Cómo te llamas?</label>
-      <input id="name-input" type="text" required class="border-2 border-green-200 rounded-2xl px-4 py-3 text-lg focus:outline-none focus:border-green-500 transition-colors placeholder:text-gray-300" placeholder="Escribe tu nombre aquí...">
-      <button type="submit" class="bg-green-500 hover:bg-green-600 active:scale-95 text-white py-4 rounded-2xl text-lg font-bold shadow-lg shadow-green-500/30 transition-all">
-        ¡Comenzar a Jugar! 🚀
-      </button>
-    </form>
-  </div>
+        body {
+            background: linear-gradient(to bottom, var(--bg-sky) 0%, var(--bg-sky) 70%, #bbf7d0 70%, #86efac 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
 
-  <!-- Game Screen -->
-  <div id="game-screen" class="hidden w-full max-w-4xl bg-white/80 backdrop-blur-md border border-white/50 shadow-2xl rounded-3xl p-6 relative">
-    
-    <!-- Header -->
-    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-green-100 pb-4 mb-6">
-      <div class="mb-3 sm:mb-0">
-        <h2 id="greeting" class="text-2xl font-extrabold text-green-800"></h2>
-        <p id="level-instruction" class="text-emerald-700 font-bold text-xs sm:text-sm mt-1"></p>
-      </div>
-      <!-- Progress indicators for food groups -->
-      <div id="recipe-progress-container" class="flex flex-wrap gap-2 text-xs font-bold text-gray-700">
-      </div>
+        /* Clouds decoration */
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 100px;
+            opacity: 0.8;
+            pointer-events: none;
+            z-index: 1;
+            animation: float 20s linear infinite;
+        }
+        .cloud::before, .cloud::after {
+            content: '';
+            position: absolute;
+            background: white;
+            border-radius: 100px;
+        }
+        .cloud-1 {
+            width: 120px; height: 40px; top: 10%; left: -150px;
+            animation-duration: 25s;
+        }
+        .cloud-1::before { width: 50px; height: 50px; top: -20px; left: 15px; }
+        .cloud-1::after { width: 70px; height: 70px; top: -35px; right: 15px; }
+
+        .cloud-2 {
+            width: 160px; height: 50px; top: 20%; left: -200px;
+            animation-duration: 35s;
+            animation-delay: 5s;
+        }
+        .cloud-2::before { width: 70px; height: 70px; top: -30px; left: 20px; }
+        .cloud-2::after { width: 90px; height: 90px; top: -45px; right: 25px; }
+
+        @keyframes float {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(calc(100vw + 300px)); }
+        }
+
+        header {
+            width: 100%;
+            padding: 15px 20px;
+            text-align: center;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1000px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #1e3a8a;
+            text-shadow: 2px 2px 0px white;
+            font-weight: 900;
+        }
+
+        .btn-audio {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #1d4ed8, 0 6px 10px rgba(0,0,0,0.15);
+            transition: transform 0.1s, box-shadow 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-audio:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 #1d4ed8, 0 2px 5px rgba(0,0,0,0.15);
+        }
+
+        .container {
+            flex: 1;
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px 20px 20px 20px;
+            z-index: 5;
+            position: relative;
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            flex: 1;
+        }
+        .screen.active {
+            display: flex;
+        }
+
+        /* Menu Screen */
+        .logo-container {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .logo-icon {
+            font-size: 5rem;
+            animation: bounce 2s infinite ease-in-out;
+            display: inline-block;
+        }
+        .game-title {
+            font-size: 3rem;
+            color: #1e3a8a;
+            text-shadow: 3px 3px 0px white;
+            font-weight: 900;
+            margin-top: 10px;
+        }
+        .game-subtitle {
+            font-size: 1.2rem;
+            color: #475569;
+            font-weight: 700;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            font-weight: 900;
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2), 0 8px 15px rgba(0,0,0,0.1);
+            transition: transform 0.1s, box-shadow 0.1s;
+            text-align: center;
+        }
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .btn-green { background-color: #22c55e; box-shadow: 0 6px 0 #16a34a, 0 8px 15px rgba(0,0,0,0.15); }
+        .btn-yellow { background-color: #eab308; box-shadow: 0 6px 0 #ca8a04, 0 8px 15px rgba(0,0,0,0.15); }
+        .btn-orange { background-color: #f97316; box-shadow: 0 6px 0 #ea580c, 0 8px 15px rgba(0,0,0,0.15); }
+
+        /* Game Screen */
+        .game-stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-bottom: 10px;
+        }
+        .btn-home {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #b91c1c;
+        }
+        .btn-home:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #b91c1c;
+        }
+
+        /* Play Area */
+        .play-area {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex: 1;
+            gap: 20px;
+        }
+
+        /* Baskets Container */
+        .baskets-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            flex: 1;
+            padding-bottom: 20px;
+            gap: 15px;
+        }
+
+        .basket-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            width: 160px;
+        }
+
+        .basket {
+            width: 150px;
+            height: 110px;
+            background: linear-gradient(135deg, var(--basket-brown), var(--basket-dark));
+            border-radius: 0 0 50% 50% / 0 0 25% 25%;
+            position: relative;
+            border: 6px solid #78350f;
+            border-top: 15px solid #78350f;
+            box-shadow: 0 8px 10px rgba(0,0,0,0.15);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .basket::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            left: 10px;
+            right: 10px;
+            height: 30px;
+            border: 6px solid #78350f;
+            border-bottom: none;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            z-index: -1;
+        }
+
+        .basket.drag-over {
+            transform: scale(1.08);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
+        }
+
+        .basket.success {
+            border-color: #22c55e;
+            box-shadow: 0 0 25px rgba(34, 197, 94, 0.6);
+            animation: bounce-small 0.5s ease;
+        }
+
+        .basket.error {
+            border-color: #ef4444;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+            animation: shake 0.3s ease;
+        }
+
+        .basket-target {
+            background-color: #fef08a;
+            color: #854d0e;
+            border: 4px solid #ca8a04;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 900;
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 3;
+        }
+
+        .basket.success .basket-target {
+            background-color: #22c55e;
+            color: white;
+            border-color: #15803d;
+        }
+
+        .basket.error .basket-target {
+            background-color: #ef4444;
+            color: white;
+            border-color: #b91c1c;
+        }
+
+        /* Apples inside the basket visual count list */
+        .apples-in-basket {
+            position: absolute;
+            bottom: 10px;
+            left: 5px;
+            right: 5px;
+            top: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 2px;
+            pointer-events: none;
+            z-index: 2;
+            overflow: hidden;
+        }
+        .basket-apple {
+            width: 24px;
+            height: 24px;
+            font-size: 1.1rem;
+            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            pointer-events: auto; /* allow dragging it out */
+        }
+
+        /* Apples Source Area */
+        .apples-source {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            min-height: 120px;
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        /* Apple Element */
+        .apple {
+            width: 50px;
+            height: 50px;
+            font-size: 2.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            position: relative;
+            z-index: 10;
+            transition: transform 0.2s;
+            touch-action: none;
+        }
+        .apple:active {
+            cursor: grabbing;
+            transform: scale(1.1);
+        }
+
+        /* Victory Screen */
+        .victory-card {
+            background: white;
+            padding: 40px;
+            border-radius: 30px;
+            text-align: center;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            max-width: 450px;
+            width: 90%;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .victory-icon {
+            font-size: 5rem;
+            animation: pulse 1.5s infinite;
+        }
+        .victory-title {
+            font-size: 2.5rem;
+            color: #15803d;
+            font-weight: 900;
+            margin: 15px 0;
+        }
+        .victory-text {
+            font-size: 1.2rem;
+            color: #475569;
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        /* Confetti Canvas */
+        #confetti {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* Animations */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        @keyframes bounce-small {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .shake {
+            animation: shake 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Decorative clouds -->
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+
+    <header>
+        <h1 id="header-title">🍎 Canastas Numéricas</h1>
+        <button class="btn-audio" onclick="speakInstruction()" title="Escuchar instrucción" aria-label="Escuchar instrucción">🔊</button>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      
-      <!-- Left side: Food Selection -->
-      <div class="lg:col-span-7 flex flex-col">
-        <!-- Categories Filter -->
-        <div class="flex flex-wrap gap-1.5 mb-4 bg-green-50/50 p-1.5 rounded-2xl border border-green-100/50">
-          <button onclick="filterFoods('all')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-green-500 text-white shadow-sm" data-category="all">Todos</button>
-          <button onclick="filterFoods('frutas')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800" data-category="frutas">🍏 Frutas y Verduras</button>
-          <button onclick="filterFoods('cereales')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800" data-category="cereales">🍞 Cereales</button>
-          <button onclick="filterFoods('proteinas')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800" data-category="proteinas">🍗 Proteínas</button>
-          <button onclick="filterFoods('agua')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800" data-category="agua">💧 Agua</button>
-          <button onclick="filterFoods('chatarra')" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800" data-category="chatarra">🍩 Evitar/Ocasional</button>
-        </div>
-
-        <!-- Food Grid -->
-        <div id="food-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-3 bg-slate-50/50 p-4 rounded-2xl border border-slate-100 max-h-[360px] overflow-y-auto"></div>
-      </div>
-
-      <!-- Right side: Lunchbox and Score -->
-      <div class="lg:col-span-5 flex flex-col justify-between gap-6">
-        <!-- The Lunchbox Box -->
-        <div class="flex flex-col">
-          <h3 id="lunchbox-title" class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1">🎒 Tu Lonchera <span>(Arrastra aquí o toca la comida)</span></h3>
-          <div id="lunchbox" class="lunchbox-zone border-4 border-dashed border-amber-300 rounded-3xl p-4 flex flex-wrap gap-4 items-center justify-center bg-amber-50/50 relative overflow-hidden">
-            <!-- Background Lunchbox compartment graphics -->
-            <div class="absolute inset-0 opacity-10 flex pointer-events-none">
-              <div class="w-1/2 h-full border-r-2 border-amber-400"></div>
-              <div class="w-1/2 h-full flex flex-col">
-                <div class="h-1/2 border-b-2 border-amber-400"></div>
-              </div>
+    <div class="container">
+        
+        <!-- MENU SCREEN -->
+        <div id="screen-menu" class="screen active">
+            <div class="logo-container">
+                <span class="logo-icon">🧺🍎</span>
+                <h2 class="game-title">Canastas Numéricas</h2>
+                <p class="game-subtitle">¡Coloca las manzanas correctas!</p>
             </div>
-            <p id="empty-hint" class="text-amber-700/60 font-bold text-center w-full pointer-events-none text-sm z-10">
-              ¡Lonchera vacía!<br><span class="text-xs font-medium text-amber-600/80">Elige alimentos nutritivos y agua pura</span>
-            </p>
-          </div>
-        </div>
-
-        <!-- Feedback & Action Panel -->
-        <div id="feedback-panel" class="bg-green-50/80 border border-green-100 rounded-3xl p-5 flex flex-col gap-3">
-          <div class="flex items-center gap-3">
-            <span id="feedback-emoji" class="text-3xl animate-bounce">💡</span>
-            <div>
-              <h4 id="feedback-title" class="font-extrabold text-sm text-green-950">¡Hola!</h4>
-              <p id="feedback-desc" class="text-xs text-green-900">Agrega por lo menos un alimento de cada grupo saludable para que tu lonchera sea balanceada.</p>
+            <div class="menu-buttons">
+                <button class="btn btn-green" onclick="startGame('facil')">Fácil (1 - 3)</button>
+                <button class="btn btn-yellow" onclick="startGame('medio')">Medio (1 - 5)</button>
+                <button class="btn btn-orange" onclick="startGame('dificil')">Difícil (1 - 10)</button>
             </div>
-          </div>
-          
-          <div class="flex gap-2 mt-2">
-            <button onclick="resetLunchbox()" class="flex-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 py-2.5 rounded-2xl text-xs font-bold active:scale-95 transition-all">
-              🗑️ Vaciar Lonchera
-            </button>
-            <button id="btn-done" onclick="finishLunchbox()" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-green-500/20 active:scale-95 transition-all opacity-50 cursor-not-allowed" disabled>
-              ✅ ¡Listo! 🍱
-            </button>
-          </div>
         </div>
 
-      </div>
+        <!-- GAME SCREEN -->
+        <div id="screen-game" class="screen">
+            <div class="game-stats">
+                <button class="btn-home" onclick="showScreen('menu')">◀ Menú</button>
+                <span id="level-indicator">Nivel: Fácil</span>
+            </div>
+
+            <div class="play-area">
+                <!-- Baskets area -->
+                <div class="baskets-container" id="baskets-container">
+                    <!-- Baskets generated dynamically -->
+                </div>
+
+                <!-- Source of apples -->
+                <div class="apples-source" id="apples-source" ondragover="event.preventDefault()" ondrop="dropToSource(event)">
+                    <!-- Apples generated dynamically -->
+                </div>
+
+                <!-- Verify button -->
+                <div style="text-align: center; margin-top: 10px;">
+                    <button class="btn btn-green" id="btn-verify" onclick="verifyLevel()" style="padding: 12px 40px; font-size: 1.4rem;">¡Verificar canastas! 🔍</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VICTORY SCREEN -->
+        <div id="screen-victory" class="screen">
+            <div class="victory-card">
+                <span class="victory-icon">🏆🎉</span>
+                <h2 class="victory-title">¡Excelente Trabajo!</h2>
+                <p class="victory-text">¡Has contado y colocado todas las manzanas correctamente!</p>
+                <button class="btn btn-green" onclick="showScreen('menu')">Jugar de Nuevo</button>
+            </div>
+        </div>
 
     </div>
 
-  </div>
+    <canvas id="confetti"></canvas>
 
-  <script>
-    // Audio Context generator for effects
-    let audioCtx = null;
-    function playSound(type) {
-      try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    <script>
+        // Web Audio Synthesizer for Kids Game
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'pop') {
+                // Drag pop sound
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            } else if (type === 'success') {
+                // A correct basket or matching drop
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } else if (type === 'victory') {
+                // Victory music
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.15); // E5
+                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.3); // G5
+                osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.45); // C6
+                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.85);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.9);
+            } else if (type === 'wrong') {
+                // Wrong drop / overflow
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
         }
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
+
+        // Game Configuration
+        let currentDifficulty = 'facil';
+        let basketsData = [];
+        let totalApplesPlaced = 0;
+        let instructionText = "¡Arrastra las manzanas a las canastas según el número indicado!";
+
+        // Sound Instructions (TTS)
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'es-MX';
+                window.speechSynthesis.speak(utterance);
+            }
         }
-        
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
 
-        const now = audioCtx.currentTime;
-
-        if (type === 'add') {
-          // A happy bubbly pop sound
-          osc.frequency.setValueAtTime(300, now);
-          osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
-          gain.gain.setValueAtTime(0.15, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
-          osc.start(now);
-          osc.stop(now + 0.15);
-        } else if (type === 'remove') {
-          // A descending whoosh
-          osc.frequency.setValueAtTime(500, now);
-          osc.frequency.exponentialRampToValueAtTime(150, now + 0.2);
-          gain.gain.setValueAtTime(0.12, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
-          osc.start(now);
-          osc.stop(now + 0.2);
-        } else if (type === 'success') {
-          // A cheerful tada chime
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(523.25, now); // C5
-          osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
-          osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
-          osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
-          gain.gain.setValueAtTime(0.2, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
-          osc.start(now);
-          osc.stop(now + 0.5);
-        } else if (type === 'warning') {
-          // Warning low sound
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(150, now);
-          osc.frequency.setValueAtTime(120, now + 0.15);
-          gain.gain.setValueAtTime(0.1, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
-          osc.start(now);
-          osc.stop(now + 0.3);
+        function speakInstruction() {
+            speak(instructionText);
         }
-      } catch (e) {
-        console.log("Audio API not supported or blocked: ", e);
-      }
-    }
 
-    // Speech Configuration
-    let voiceEnabled = true;
-    function speak(text) {
-      if (!voiceEnabled) return;
-      // Cancel previous speak queue to avoid talking over
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'es-MX';
-      utterance.rate = 1.0;
-      utterance.pitch = 1.1; // Slightly higher pitch for child-friendly feel
-      window.speechSynthesis.speak(utterance);
-    }
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(`screen-${screenId}`).classList.add('active');
 
-    function toggleVoice() {
-      voiceEnabled = !voiceEnabled;
-      const icon = document.getElementById('voice-icon');
-      const text = document.getElementById('voice-status-text');
-      if (voiceEnabled) {
-        icon.textContent = '🔊';
-        text.textContent = 'Voz: Activada';
-        speak("Voz activada");
-      } else {
-        icon.textContent = '🔇';
-        text.textContent = 'Voz: Desactivada';
-        window.speechSynthesis.cancel();
-      }
-    }
-
-    // Foods database according to NEM Phase 2 / Plato del Bien Comer
-    const foods = [
-      // Frutas y Verduras
-      { emoji: '🍎', name: 'Manzana', cat: 'frutas', isHealthy: true, desc: 'Fruta dulce que te llena de energía y vitaminas.' },
-      { emoji: '🍌', name: 'Plátano', cat: 'frutas', isHealthy: true, desc: 'Fruta rica en potasio que ayuda a tus músculos.' },
-      { emoji: '🥕', name: 'Zanahoria', cat: 'frutas', isHealthy: true, desc: 'Verdura crujiente ideal para la vista.' },
-      { emoji: '🥦', name: 'Brócoli', cat: 'frutas', isHealthy: true, desc: 'Verdura que parece arbolito, llena de calcio y hierro.' },
-      { emoji: '🥑', name: 'Aguacate', cat: 'frutas', isHealthy: true, desc: 'Aporta grasas buenas para tu cerebro.' },
-      { emoji: '🍓', name: 'Fresa', cat: 'frutas', isHealthy: true, desc: 'Fruta ácida y rica en vitamina C.' },
-      
-      // Cereales
-      { emoji: '🍞', name: 'Pan integral', cat: 'cereales', isHealthy: true, desc: 'Te da fibra para una buena digestión.' },
-      { emoji: '🌽', name: 'Elote', cat: 'cereales', isHealthy: true, desc: 'Cereal nativo que aporta energía saludable.' },
-      { emoji: '🥣', name: 'Avena', cat: 'cereales', isHealthy: true, desc: 'Cereal que cuida de tu corazoncito.' },
-
-      // Proteínas y Lácteos (Origen animal y leguminosas)
-      { emoji: '🥚', name: 'Huevo cocido', cat: 'proteinas', isHealthy: true, desc: 'Tiene proteínas completas para crecer fuerte.' },
-      { emoji: '🧀', name: 'Queso', cat: 'proteinas', isHealthy: true, desc: 'Aporta calcio para tus huesos.' },
-      { emoji: '🥛', name: 'Leche', cat: 'proteinas', isHealthy: true, desc: 'Fortalece tus dientes y huesos.' },
-      { emoji: '🍗', name: 'Pollo', cat: 'proteinas', isHealthy: true, desc: 'Carne magra ideal para formar tus músculos.' },
-      { emoji: '🥜', name: 'Nueces', cat: 'proteinas', isHealthy: true, desc: 'Semillas con grasas saludables y fibra.' },
-
-      // Agua
-      { emoji: '💧', name: 'Agua simple', cat: 'agua', isHealthy: true, desc: 'El agua simple potable es vital para hidratarte.' },
-
-      // Chatarra / Alto en azúcares o grasas (Riesgo en exceso)
-      { emoji: '🍩', name: 'Dona', cat: 'chatarra', isHealthy: false, desc: 'Tiene mucha azúcar y harina refinada. Cuidado.' },
-      { emoji: '🥤', name: 'Refresco', cat: 'chatarra', isHealthy: false, desc: 'Tiene demasiada azúcar y colorantes dañinos.' },
-      { emoji: '🍟', name: 'Papas fritas', cat: 'chatarra', isHealthy: false, desc: 'Tienen exceso de sal y grasas no saludables.' },
-      { emoji: '🍬', name: 'Dulces', cat: 'chatarra', isHealthy: false, desc: 'Pueden provocar caries y no nutren tu cuerpo.' }
-    ];
-
-    const levels = [
-      {
-        name: "Nivel 1: El Almuerzo de Oso 🐻",
-        instruction: "Receta: Agrega 2 Manzanas 🍎, 1 Pan integral 🍞 y 1 Agua simple 💧.",
-        speechInstruction: "Nivel uno: El Almuerzo de Oso. Agrega dos manzanas, un pan integral y un agua simple a tu lonchera.",
-        recipe: {
-          "Manzana": 2,
-          "Pan integral": 1,
-          "Agua simple": 1
+            if (screenId === 'menu') {
+                instructionText = "Elige un nivel para jugar: Fácil, Medio, o Difícil";
+                speakInstruction();
+            } else if (screenId === 'victory') {
+                instructionText = "¡Felicidades! Lograste acomodar todas las manzanas.";
+                speakInstruction();
+                startConfetti();
+            }
         }
-      },
-      {
-        name: "Nivel 2: Picnic de Monitos 🐵",
-        instruction: "Receta: Agrega 3 Plátanos 🍌, 2 Huevos cocidos 🥚 y 1 Agua simple 💧.",
-        speechInstruction: "Nivel dos: Picnic de Monitos. Agrega tres plátanos, dos huevos cocidos y un agua simple a tu lonchera.",
-        recipe: {
-          "Plátano": 3,
-          "Huevo cocido": 2,
-          "Agua simple": 1
+
+        function startGame(difficulty) {
+            currentDifficulty = difficulty;
+            showScreen('game');
+
+            const levelInd = document.getElementById('level-indicator');
+            let basketCount = 2;
+            let maxNumber = 3;
+
+            if (difficulty === 'facil') {
+                levelInd.textContent = "Nivel: Fácil 🟢";
+                basketCount = 2;
+                maxNumber = 3;
+            } else if (difficulty === 'medio') {
+                levelInd.textContent = "Nivel: Medio 🟡";
+                basketCount = 3;
+                maxNumber = 5;
+            } else {
+                levelInd.textContent = "Nivel: Difícil 🔴";
+                basketCount = 3;
+                maxNumber = 10;
+            }
+
+            setupLevel(basketCount, maxNumber);
         }
-      },
-      {
-        name: "Nivel 3: El Gran Festín Saludable 🥕",
-        instruction: "Receta: Agrega 2 Zanahorias 🥕, 2 Quesos 🧀, 3 Fresas 🍓 y 1 Agua simple 💧.",
-        speechInstruction: "Nivel tres: El Gran Festín Saludable. Agrega dos zanahorias, dos quesos, tres fresas y un agua simple.",
-        recipe: {
-          "Zanahoria": 2,
-          "Queso": 2,
-          "Fresa": 3,
-          "Agua simple": 1
+
+        function setupLevel(basketCount, maxNumber) {
+            const basketsContainer = document.getElementById('baskets-container');
+            const applesSource = document.getElementById('apples-source');
+            basketsContainer.innerHTML = '';
+            applesSource.innerHTML = '';
+
+            basketsData = [];
+            let totalApplesRequired = 0;
+
+            // Generate random distinct targets
+            const usedTargets = new Set();
+            for (let i = 0; i < basketCount; i++) {
+                let target;
+                do {
+                    target = Math.floor(Math.random() * maxNumber) + 1;
+                } while (usedTargets.has(target));
+                usedTargets.add(target);
+                totalApplesRequired += target;
+
+                basketsData.push({
+                    id: i,
+                    target: target,
+                    current: 0
+                });
+            }
+
+            // Create baskets
+            basketsData.forEach(basket => {
+                const basketWrapper = document.createElement('div');
+                basketWrapper.className = 'basket-wrapper';
+
+                const basketEl = document.createElement('div');
+                basketEl.className = 'basket';
+                basketEl.id = `basket-${basket.id}`;
+                basketEl.dataset.id = basket.id;
+
+                // Drag & Drop event listeners
+                basketEl.addEventListener('dragover', dragOver);
+                basketEl.addEventListener('dragleave', dragLeave);
+                basketEl.addEventListener('drop', dropToBasket);
+                basketEl.addEventListener('click', () => {
+                    speak(`Esta canasta necesita ${basket.target} manzanas. Tiene ${basket.current}`);
+                });
+
+                const targetEl = document.createElement('div');
+                targetEl.className = 'basket-target';
+                targetEl.textContent = basket.target;
+
+                const applesInBasketEl = document.createElement('div');
+                applesInBasketEl.className = 'apples-in-basket';
+                applesInBasketEl.id = `apples-in-basket-${basket.id}`;
+
+                basketEl.appendChild(targetEl);
+                basketEl.appendChild(applesInBasketEl);
+                basketWrapper.appendChild(basketEl);
+                basketsContainer.appendChild(basketWrapper);
+            });
+
+            // Create apples to drag
+            // Generate extra apples so kids can make mistakes and count
+            const applesToGenerate = totalApplesRequired + 2; 
+            for (let i = 0; i < applesToGenerate; i++) {
+                const apple = document.createElement('div');
+                apple.className = 'apple';
+                apple.id = `apple-src-${i}`;
+                apple.textContent = '🍎';
+                apple.draggable = true;
+                apple.addEventListener('dragstart', dragStart);
+                apple.addEventListener('touchstart', touchStart, { passive: false });
+                apple.addEventListener('touchmove', touchMove, { passive: false });
+                apple.addEventListener('touchend', touchEnd);
+
+                applesSource.appendChild(apple);
+            }
+
+            instructionText = `Coloca las manzanas correspondientes en cada canasta. ¡Vamos!`;
+            speakInstruction();
         }
-      },
-      {
-        name: "Nivel 4: ¡Limpiemos la Comida Chatarra! 🗑️",
-        instruction: "Receta: Coloca lo malo en el bote de basura para tirarlo: 1 Dona 🍩, 1 Refresco 🥤, 1 Papas fritas 🍟 y 1 Dulces 🍬.",
-        speechInstruction: "Nivel cuatro: Limpiemos la Comida Chatarra. Encuentra los alimentos chatarra y ponlos en el bote de basura para tirarlos. Pon una dona, un refresco, unas papas fritas y unos dulces.",
-        isTrashLevel: true,
-        recipe: {
-          "Dona": 1,
-          "Refresco": 1,
-          "Papas fritas": 1,
-          "Dulces": 1
+
+        // Drag & Drop API Logic
+        let draggedApple = null;
+
+        function dragStart(e) {
+            draggedApple = this;
+            e.dataTransfer.setData('text/plain', this.id);
+            playSound('pop');
         }
-      }
-    ];
 
-    let currentLevelIndex = 0;
-    let playerName = '';
-    let lunchboxItems = [];
-
-    // Enter Game Screen
-    document.getElementById('name-form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      playerName = document.getElementById('name-input').value.trim();
-      if (!playerName) return;
-
-      document.getElementById('name-screen').classList.add('hidden');
-      document.getElementById('game-screen').classList.remove('hidden');
-      
-      buildFoodGrid();
-      startLevel(0);
-    });
-
-    function startLevel(index) {
-      currentLevelIndex = index;
-      lunchboxItems = [];
-      
-      // Clear lunchbox DOM elements
-      const lunchbox = document.getElementById('lunchbox');
-      lunchbox.querySelectorAll('div').forEach(el => el.remove());
-      document.getElementById('empty-hint').style.display = '';
-
-      const level = levels[currentLevelIndex];
-      const greetingMsg = `¡Lonchera de ${playerName}! 🎒`;
-      document.getElementById('greeting').textContent = greetingMsg;
-      document.getElementById('level-instruction').textContent = `${level.name} - ${level.instruction}`;
-
-      // Trash level visual styling override
-      const containerLabel = document.getElementById('lunchbox-title');
-      const emptyHint = document.getElementById('empty-hint');
-      const lunchboxDiv = document.getElementById('lunchbox');
-      if (level.isTrashLevel) {
-        containerLabel.innerHTML = `🗑️ Bote de Basura <span>(Arrastra aquí la comida chatarra)</span>`;
-        emptyHint.innerHTML = `¡Basurero vacío!<br><span class="text-xs font-medium text-amber-600/80">Agrega alimentos chatarra aquí para desecharlos</span>`;
-        lunchboxDiv.className = 'lunchbox-zone border-4 border-dashed border-rose-300 rounded-3xl p-4 flex flex-wrap gap-4 items-center justify-center bg-rose-50/50 relative overflow-hidden';
-      } else {
-        containerLabel.innerHTML = `🎒 Tu Lonchera <span>(Arrastra aquí o toca la comida)</span>`;
-        emptyHint.innerHTML = `¡Lonchera vacía!<br><span class="text-xs font-medium text-amber-600/80">Elige alimentos nutritivos y agua pura</span>`;
-        lunchboxDiv.className = 'lunchbox-zone border-4 border-dashed border-amber-300 rounded-3xl p-4 flex flex-wrap gap-4 items-center justify-center bg-amber-50/50 relative overflow-hidden';
-      }
-
-      updateIndicators();
-      assessLunchbox();
-
-      setTimeout(() => {
-        speak(level.speechInstruction);
-      }, 500);
-    }
-
-    // Render Grid
-    let currentFilter = 'all';
-    function buildFoodGrid() {
-      const grid = document.getElementById('food-grid');
-      grid.innerHTML = '';
-      
-      foods.forEach((food, i) => {
-        if (currentFilter !== 'all' && food.cat !== currentFilter) return;
-
-        const el = document.createElement('button');
-        el.type = 'button';
-        // Base category color border
-        let borderCol = 'border-slate-100';
-        if (food.cat === 'frutas') borderCol = 'hover:border-green-400';
-        else if (food.cat === 'cereales') borderCol = 'hover:border-amber-400';
-        else if (food.cat === 'proteinas') borderCol = 'hover:border-blue-400';
-        else if (food.cat === 'agua') borderCol = 'hover:border-cyan-400';
-        else if (food.cat === 'chatarra') borderCol = 'hover:border-red-400';
-
-        el.className = `food-item text-4xl p-3 rounded-2xl bg-white shadow-md hover:shadow-lg border-2 ${borderCol} flex flex-col items-center justify-between min-h-[96px]`;
-        el.draggable = true;
-        el.innerHTML = `<span class="transform transition-transform active:scale-125">${food.emoji}</span>
-                        <span class="text-[10px] font-bold text-gray-500 mt-1 uppercase text-center w-full truncate">${food.name}</span>`;
-        
-        // Add events
-        el.addEventListener('dragstart', e => {
-          e.dataTransfer.setData('text/plain', i);
-          speak(food.name);
-        });
-        el.addEventListener('click', () => {
-          addToLunchbox(i);
-        });
-        
-        grid.appendChild(el);
-      });
-    }
-
-    // Filter Logic
-    function filterFoods(cat) {
-      currentFilter = cat;
-      buildFoodGrid();
-      
-      // Update Active Button UI
-      const buttons = document.querySelectorAll('.cat-btn');
-      buttons.forEach(btn => {
-        if (btn.getAttribute('data-category') === cat) {
-          btn.className = "cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-green-500 text-white shadow-sm";
-        } else {
-          btn.className = "cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-green-100 text-green-800";
+        function dragOver(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
         }
-      });
 
-      // Sound effect
-      playSound('add');
-    }
-
-    // Drag-Drop Zone
-    const lunchbox = document.getElementById('lunchbox');
-    lunchbox.addEventListener('dragover', e => { 
-      e.preventDefault(); 
-      lunchbox.classList.add('drag-over'); 
-    });
-    lunchbox.addEventListener('dragleave', () => { 
-      lunchbox.classList.remove('drag-over'); 
-    });
-    lunchbox.addEventListener('drop', e => {
-      e.preventDefault();
-      lunchbox.classList.remove('drag-over');
-      const idx = parseInt(e.dataTransfer.getData('text/plain'));
-      if (!isNaN(idx)) {
-        addToLunchbox(idx);
-      }
-    });
-
-     // Add Item to Lunchbox
-    function addToLunchbox(idx) {
-      const food = foods[idx];
-      const level = levels[currentLevelIndex];
-
-      // Warn but allow chatarra for feedback (only on healthy food levels)
-      if (!food.isHealthy && !level.isTrashLevel) {
-        playSound('warning');
-        speak(`${food.name}. ${food.desc}`);
-      }
-
-      // Check count and recipe
-      const targetCount = level.recipe[food.name] || 0;
-      const currentCount = lunchboxItems.filter(item => item.name === food.name).length;
-
-      if (targetCount === 0) {
-        if (level.isTrashLevel) {
-          speak(`¡No tires eso! La comida saludable no se tira a la basura.`);
-        } else {
-          speak(`Este nivel no necesita ${food.name}. ¡Sigue la receta del nivel!`);
+        function dragLeave(e) {
+            this.classList.remove('drag-over');
         }
-        playSound('warning');
-        return;
-      }
 
-      if (currentCount >= targetCount) {
-        speak(`Ya juntaste suficientes ${food.name}s.`);
-        playSound('warning');
-        return;
-      }
+        function dropToBasket(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            const basketId = parseInt(this.dataset.id);
+            const basketObj = basketsData[basketId];
 
-      const itemObj = {
-        id: Math.random().toString(36).substr(2, 9),
-        foodIndex: idx,
-        name: food.name,
-        emoji: food.emoji
-      };
-      
-      lunchboxItems.push(itemObj);
-
-      // Hide Empty Indicator
-      document.getElementById('empty-hint').style.display = 'none';
-
-      // Create Element in Lunchbox
-      const itemEl = document.createElement('div');
-      itemEl.id = `item-${itemObj.id}`;
-      itemEl.className = 'flex flex-col items-center bg-white/90 p-2 rounded-2xl shadow-md border border-amber-200 bounce cursor-pointer relative group';
-      itemEl.innerHTML = `<span class="text-4xl">${food.emoji}</span>
-                        <span class="text-[8px] font-bold text-gray-500 uppercase mt-0.5">${food.name}</span>
-                        <span class="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full text-[9px] w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">✕</span>`;
-      
-      // Remove Action
-      itemEl.addEventListener('click', () => {
-        playSound('remove');
-        itemEl.remove();
-        lunchboxItems = lunchboxItems.filter(item => item.id !== itemObj.id);
-        
-        speak(`Quitaste ${food.name}`);
-        
-        if (!lunchboxItems.length) {
-          document.getElementById('empty-hint').style.display = '';
+            if (draggedApple) {
+                // If it is dragged from source or another basket
+                moveAppleToBasket(draggedApple, basketId);
+                draggedApple = null;
+            }
         }
-        updateIndicators();
-        assessLunchbox();
-      });
 
-      lunchbox.appendChild(itemEl);
-
-      // Play sound and speak count status
-      playSound('add');
-      const newCount = currentCount + 1;
-      if (level.isTrashLevel) {
-        speak(`Tiraste ${food.name} a la basura. Llevas ${newCount} de ${targetCount}.`);
-      } else {
-        speak(`Agregaste ${food.name}. Tienes ${newCount} de ${targetCount}.`);
-      }
-
-      updateIndicators();
-      assessLunchbox();
-    }
-
-    // Update Recipe Indicators
-    function updateIndicators() {
-      const container = document.getElementById('recipe-progress-container');
-      container.innerHTML = '';
-
-      const level = levels[currentLevelIndex];
-      
-      Object.entries(level.recipe).forEach(([foodName, targetCount]) => {
-        const food = foods.find(f => f.name === foodName);
-        const emoji = food ? food.emoji : '';
-        const currentCount = lunchboxItems.filter(item => item.name === foodName).length;
-        const isMet = currentCount >= targetCount;
-        
-        const span = document.createElement('span');
-        if (isMet) {
-          span.className = "px-2.5 py-1.5 rounded-full bg-green-100 text-green-700 border border-green-300 flex items-center gap-1";
-          span.innerHTML = `${emoji} ${foodName}: ✓ (${currentCount}/${targetCount})`;
-        } else {
-          span.className = "px-2.5 py-1.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 flex items-center gap-1";
-          span.innerHTML = `${emoji} ${foodName}: ${currentCount}/${targetCount}`;
+        function dropToSource(e) {
+            e.preventDefault();
+            if (draggedApple) {
+                moveAppleToSource(draggedApple);
+                draggedApple = null;
+            }
         }
-        container.appendChild(span);
-      });
-    }
 
-    // Provide educational feedback
-    function assessLunchbox() {
-      const panel = document.getElementById('feedback-panel');
-      const emoji = document.getElementById('feedback-emoji');
-      const title = document.getElementById('feedback-title');
-      const desc = document.getElementById('feedback-desc');
-      const doneBtn = document.getElementById('btn-done');
+        // Handle Touch Events (Mobile/Tablet friendly drag & drop)
+        let touchStartPos = { x: 0, y: 0 };
+        let activeTouchApple = null;
 
-      const level = levels[currentLevelIndex];
-
-      // Check if they put any non-recipe items
-      const nonRecipeItems = lunchboxItems.filter(item => !level.recipe[item.name]);
-      const hasIncorrectItems = nonRecipeItems.length > 0;
-
-      // Check if all recipe counts are matched
-      let allRequirementsMet = true;
-      Object.entries(level.recipe).forEach(([foodName, targetCount]) => {
-        const currentCount = lunchboxItems.filter(item => item.name === foodName).length;
-        if (currentCount !== targetCount) {
-          allRequirementsMet = false;
+        function touchStart(e) {
+            activeTouchApple = this;
+            const touch = e.touches[0];
+            touchStartPos = { x: touch.clientX, y: touch.clientY };
+            this.style.position = 'absolute';
+            this.style.zIndex = 1000;
+            playSound('pop');
         }
-      });
 
-      // Reset styles
-      panel.className = "bg-green-50/80 border border-green-100 rounded-3xl p-5 flex flex-col gap-3";
-      doneBtn.disabled = true;
-      doneBtn.className = "flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-green-500/20 active:scale-95 transition-all opacity-50 cursor-not-allowed";
-
-      if (lunchboxItems.length === 0) {
-        emoji.textContent = '💡';
-        title.textContent = '¡Hola!';
-        desc.textContent = level.isTrashLevel ? `Busquemos los alimentos que nos hacen daño y tíralos a la basura.` : `Vamos a seguir la receta. ${level.instruction}`;
-      } else if (hasIncorrectItems) {
-        if (level.isTrashLevel) {
-          emoji.textContent = '⚠️';
-          title.textContent = '¡Comida saludable en la basura!';
-          desc.textContent = 'Pusiste un alimento saludable en el bote de basura. ¡Sácalo tocándolo para no desperdiciarlo!';
-        } else {
-          emoji.textContent = '🧐';
-          title.textContent = 'Ingredientes adicionales';
-          desc.textContent = 'Pusiste alimentos que no están en la receta del nivel. ¡Quítalos haciendo clic sobre ellos!';
+        function touchMove(e) {
+            if (!activeTouchApple) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            const dx = touch.clientX - touchStartPos.x;
+            const dy = touch.clientY - touchStartPos.y;
+            activeTouchApple.style.transform = `translate(${dx}px, ${dy}px) scale(1.1)`;
         }
-        panel.className = "bg-amber-50 border border-amber-200 rounded-3xl p-5 flex flex-col gap-3";
-      } else if (allRequirementsMet) {
-        emoji.textContent = '🌟';
-        title.textContent = level.isTrashLevel ? '¡Basurero Limpio!' : '¡Receta Lista!';
-        desc.textContent = level.isTrashLevel ? '¡Excelente! Limpiaste toda la comida chatarra correctamente. ¡Toca el botón verde!' : '¡Excelente! Completaste exactamente la receta. ¡Toca el botón verde para continuar!';
-        panel.className = "bg-green-100 border border-green-300 rounded-3xl p-5 flex flex-col gap-3 pulse-glow";
-        
-        doneBtn.disabled = false;
-        doneBtn.className = "flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-green-500/20 active:scale-95 transition-all";
-      } else {
-        emoji.textContent = '🥗';
-        title.textContent = '¡Buen camino!';
-        
-        let missing = [];
-        Object.entries(level.recipe).forEach(([foodName, targetCount]) => {
-          const currentCount = lunchboxItems.filter(item => item.name === foodName).length;
-          if (currentCount < targetCount) {
-            const diff = targetCount - currentCount;
-            missing.push(`${diff} ${foodName}${diff > 1 ? 's' : ''}`);
-          }
+
+        function touchEnd(e) {
+            if (!activeTouchApple) return;
+            const apple = activeTouchApple;
+            activeTouchApple = null;
+
+            apple.style.display = 'none'; // Temporarily hide to find what's underneath
+            const touch = e.changedTouches[0];
+            const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+            apple.style.display = ''; // Restore display
+
+            // Reset styles
+            apple.style.position = '';
+            apple.style.zIndex = '';
+            apple.style.transform = '';
+
+            let basketEl = null;
+            if (elementUnder) {
+                basketEl = elementUnder.closest('.basket');
+            }
+
+            if (basketEl) {
+                const basketId = parseInt(basketEl.dataset.id);
+                moveAppleToBasket(apple, basketId);
+            } else {
+                moveAppleToSource(apple);
+            }
+        }
+
+        // Logic Helpers
+        function moveAppleToBasket(appleEl, basketId) {
+            const basketObj = basketsData[basketId];
+            const previousBasketId = appleEl.dataset.inBasket;
+
+            if (previousBasketId !== undefined && parseInt(previousBasketId) === basketId) {
+                // Dropped back into the same basket
+                return;
+            }
+
+            // Remove from previous basket if it was in one
+            if (previousBasketId !== undefined) {
+                const prevBasket = basketsData[parseInt(previousBasketId)];
+                prevBasket.current--;
+                updateBasketVisuals(parseInt(previousBasketId));
+            }
+
+            // Add to new basket
+            basketObj.current++;
+            appleEl.dataset.inBasket = basketId;
+
+            // Update UI/Visual representation of apple inside basket
+            const listContainer = document.getElementById(`apples-in-basket-${basketId}`);
+            
+            // Re-style apple for visual layout inside basket
+            appleEl.className = 'basket-apple';
+            appleEl.style.position = '';
+            appleEl.style.transform = '';
+            appleEl.draggable = true;
+
+            // Make sure touch events still allow dragging out of the basket
+            appleEl.removeEventListener('touchstart', touchStart);
+            appleEl.removeEventListener('touchmove', touchMove);
+            appleEl.removeEventListener('touchend', touchEnd);
+            appleEl.addEventListener('touchstart', touchStart, { passive: false });
+            appleEl.addEventListener('touchmove', touchMove, { passive: false });
+            appleEl.addEventListener('touchend', touchEnd);
+
+            listContainer.appendChild(appleEl);
+
+            updateBasketVisuals(basketId);
+        }
+
+        function moveAppleToSource(appleEl) {
+            const previousBasketId = appleEl.dataset.inBasket;
+            if (previousBasketId !== undefined) {
+                const prevBasket = basketsData[parseInt(previousBasketId)];
+                prevBasket.current--;
+                delete appleEl.dataset.inBasket;
+                updateBasketVisuals(parseInt(previousBasketId));
+            }
+
+            appleEl.className = 'apple';
+            appleEl.style.position = '';
+            appleEl.style.transform = '';
+            
+            document.getElementById('apples-source').appendChild(appleEl);
+            playSound('pop');
+        }
+
+        function clearBasketStatuses() {
+            basketsData.forEach(basket => {
+                const basketEl = document.getElementById(`basket-${basket.id}`);
+                if (basketEl) {
+                    basketEl.classList.remove('success', 'error');
+                }
+            });
+        }
+
+        function updateBasketVisuals(basketId) {
+            // Clear visual statuses when user makes changes so they can verify again
+            clearBasketStatuses();
+        }
+
+        function verifyLevel() {
+            let allCorrect = true;
+
+            basketsData.forEach(basket => {
+                const basketEl = document.getElementById(`basket-${basket.id}`);
+                if (basketEl) {
+                    if (basket.current === basket.target) {
+                        basketEl.classList.add('success');
+                        basketEl.classList.remove('error');
+                    } else {
+                        basketEl.classList.add('error');
+                        basketEl.classList.remove('success');
+                        allCorrect = false;
+                    }
+                }
+            });
+
+            if (allCorrect) {
+                playSound('success');
+                speak("¡Excelente trabajo! Todas las canastas tienen las manzanas correctas.");
+                setTimeout(() => {
+                    playSound('victory');
+                    showScreen('victory');
+                }, 1500);
+            } else {
+                playSound('wrong');
+                speak("¡Oh, no! Algunas canastas no tienen la cantidad correcta. ¡Revisa con cuidado!");
+            }
+        }
+
+        // Confetti effect
+        const canvas = document.getElementById('confetti');
+        const ctx = canvas.getContext('2d');
+        let confettiPieces = [];
+        let animationFrame = null;
+
+        function startConfetti() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            confettiPieces = [];
+            for (let i = 0; i < 150; i++) {
+                confettiPieces.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    size: Math.random() * 10 + 5,
+                    color: `hsl(${Math.random() * 360}, 100%, 60%)`,
+                    speed: Math.random() * 3 + 2,
+                    angle: Math.random() * 360,
+                    rotationSpeed: Math.random() * 4 - 2
+                });
+            }
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+            updateConfetti();
+        }
+
+        function updateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let active = false;
+            confettiPieces.forEach(p => {
+                p.y += p.speed;
+                p.angle += p.rotationSpeed;
+                if (p.y < canvas.height) {
+                    active = true;
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.angle * Math.PI / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    ctx.restore();
+                }
+            });
+            if (active) {
+                animationFrame = requestAnimationFrame(updateConfetti);
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         });
 
-        desc.textContent = level.isTrashLevel ? `Aún te falta desechar: ${missing.join(', ')}.` : `Aún te falta agregar: ${missing.join(', ')}.`;
-        panel.className = "bg-amber-50 border border-amber-200 rounded-3xl p-5 flex flex-col gap-3";
-      }
-    }
-
-    // Complete Level / Win screen transitions
-    function finishLunchbox() {
-      playSound('success');
-      
-      const level = levels[currentLevelIndex];
-      const victoryScreen = document.getElementById('victory-screen');
-      const victoryTitle = document.getElementById('victory-title');
-      const victoryDesc = document.getElementById('victory-desc');
-      const victoryBtn = document.getElementById('victory-action-btn');
-      const victoryEmoji = document.getElementById('victory-emoji');
-
-      // CSS Trigger celebration scale
-      const lunchboxDiv = document.getElementById('lunchbox');
-      lunchboxDiv.classList.add('bounce');
-      setTimeout(() => lunchboxDiv.classList.remove('bounce'), 600);
-
-      victoryScreen.classList.remove('hidden');
-
-      if (currentLevelIndex < levels.length - 1) {
-        victoryEmoji.textContent = '🎉';
-        victoryTitle.textContent = '¡Nivel Completado!';
-        victoryDesc.textContent = `¡Grandioso ${playerName}! Lograste completar la receta de "${level.name}". ¿Listo para el siguiente reto?`;
-        victoryBtn.textContent = 'Siguiente Nivel 🚀';
-        
-        speak(`¡Excelente ${playerName}! Completaste el nivel. ¡Vamos al siguiente!`);
-      } else {
-        victoryEmoji.textContent = '🏆';
-        victoryTitle.textContent = '¡Campeón de Nutrición!';
-        victoryDesc.textContent = `¡Muchas felicidades ${playerName}! Completaste los 3 niveles y aprendiste a diseñar loncheras saludables y balanceadas usando conteo. ¡Buen provecho!`;
-        victoryBtn.textContent = 'Volver a Jugar 🔄';
-        
-        speak(`¡Felicidades ${playerName}! Completaste todos los niveles. ¡Eres un experto en loncheras saludables!`);
-      }
-    }
-
-    // Action when button in victory modal is clicked
-    function nextLevelAction() {
-      const victoryScreen = document.getElementById('victory-screen');
-      victoryScreen.classList.add('hidden');
-
-      if (currentLevelIndex < levels.length - 1) {
-        startLevel(currentLevelIndex + 1);
-      } else {
-        // Restart from Level 1
-        startLevel(0);
-      }
-    }
-
-    // Reset
-    function resetLunchbox() {
-      playSound('remove');
-      lunchboxItems = [];
-      const lunchbox = document.getElementById('lunchbox');
-      lunchbox.querySelectorAll('div').forEach(el => el.remove());
-      document.getElementById('empty-hint').style.display = '';
-      
-      updateIndicators();
-      assessLunchbox();
-      
-      speak("Vaciamos la lonchera. ¡Empecemos otra vez!");
-    }
-  </script>
-
-  <!-- Level Success / Victory Screen -->
-  <div id="victory-screen" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white/95 border border-white/50 shadow-2xl rounded-3xl p-8 max-w-md w-full text-center relative overflow-hidden transition-all duration-500 scale-95">
-      <div class="absolute -top-10 -left-10 w-32 h-32 bg-green-200/50 rounded-full blur-2xl"></div>
-      <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-amber-200/50 rounded-full blur-2xl"></div>
-      
-      <div class="text-7xl mb-4 animate-bounce" id="victory-emoji">🎉</div>
-      <h3 id="victory-title" class="text-3xl font-extrabold text-green-800 mb-2 leading-tight">¡Buen trabajo!</h3>
-      <p id="victory-desc" class="text-gray-600 font-medium mb-6"></p>
-      <button id="victory-action-btn" onclick="nextLevelAction()" class="w-full bg-green-500 hover:bg-green-600 active:scale-95 text-white py-4 rounded-2xl text-lg font-bold shadow-lg shadow-green-500/30 transition-all">
-        Siguiente Nivel 🚀
-      </button>
-    </div>
-  </div>
- </body>
+        // Initialize Speak instructions on load
+        window.addEventListener('load', () => {
+            instructionText = "Elige un nivel para jugar: Fácil, Medio, o Difícil";
+            setTimeout(speakInstruction, 1000);
+        });
+    </script>
+</body>
 </html>
